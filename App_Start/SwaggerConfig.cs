@@ -1,11 +1,13 @@
+using System;
+using System.Collections.Generic;
 using System.Web.Http;
-using WebActivatorEx;
+
+using System.Web.Http.Description;
+
 using SharpDevelopWebApi;
 using Swashbuckle.Application;
-using System;
 using Swashbuckle.Swagger;
-using System.Web.Http.Description;
-using System.Collections.Generic;
+using WebActivatorEx;
 
 [assembly: PreApplicationStartMethod(typeof(SwaggerConfig), "Register")]
 
@@ -16,6 +18,7 @@ namespace SharpDevelopWebApi
         public static void Register()
         {
             var thisAssembly = typeof(SwaggerConfig).Assembly;
+
 
             GlobalConfiguration.Configuration
                 .EnableSwagger(c =>
@@ -38,7 +41,7 @@ namespace SharpDevelopWebApi
                         // hold additional metadata for an API. Version and title are required but you can also provide
                         // additional fields by chaining methods off SingleApiVersion.
                         //
-                        c.SingleApiVersion("v1", "SharpDevelopWebApi | <a href=\"https://bernardgabon.com/sdwebapi\">Download</a> | <a href=\"https://github.com/aspdotnetgabs/sharpdevelopwebapi\">Code</a>");
+                        c.SingleApiVersion("v1", "FRONTEND | <a href=\"/client\">Vue-app CDN</a>");
 
                         // If you want the output Swagger docs to be indented properly, enable the "PrettyPrint" option.
                         //

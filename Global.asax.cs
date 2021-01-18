@@ -13,6 +13,8 @@ using System.Web.SessionState;
 using Newtonsoft.Json.Serialization;
 using Swashbuckle.Application;
 using Hangfire.MemoryStorage;
+using System.Web.Routing;
+using Microsoft.AspNet.SignalR;
 
 namespace SharpDevelopWebApi
 {
@@ -27,12 +29,14 @@ namespace SharpDevelopWebApi
         	
 			var config = System.Web.Http.GlobalConfiguration.Configuration;
 			
-			config.EnableCors(new EnableCorsAttribute("*","*","*"));	
+			config.EnableCors(new EnableCorsAttribute("*","*","*"));		
 
-			config.MessageHandlers.Add(new JWTAuth.TokenValidationHandler());			
-			
-			config.MapHttpAttributeRoutes();
-			
+            RouteTable.Routes.MapHubs(new HubConfiguration
+            {
+                EnableCrossDomain = true
+            });
+
+            config.MapHttpAttributeRoutes();
             // Redirect root to Swagger UI
             config.Routes.MapHttpRoute(
                 name: "Swagger UI",
@@ -40,7 +44,6 @@ namespace SharpDevelopWebApi
                 defaults: null,
                 constraints: null,
                 handler: new RedirectHandler(SwaggerDocsConfig.DefaultRootUrlResolver, "swagger"));
-            
             config.Routes.MapHttpRoute(
                 name: "DefaultApi",
                 routeTemplate: API_Route_Prefix + "/{controller}/{id}",
@@ -63,5 +66,23 @@ namespace SharpDevelopWebApi
             _backgroundJobServer.Dispose();
         }        
 
+        #region SessionInWebAPI
+        // Avoid Session at all cost!!!
+        // Use Session in Web Api in some special cases ONLY if you know what you're doing.
+        public override void Init()
+        {
+            this.PostAuthenticateRequest += MvcApplication_PostAuthenticateRequest;
+            base.Init();
+        }
+
+        void MvcApplication_PostAuthenticateRequest(object sender, EventArgs e)
+        {
+            bool IsWebApiRequest = HttpContext.Current.Request.AppRelativeCurrentExecutionFilePath.StartsWith("~/" + API_Route_Prefix);
+            if (IsWebApiRequest)
+            {
+                HttpContext.Current.SetSessionStateBehavior(SessionStateBehavior.Required);
+            }
+        }
+        #endregion
     }
 }

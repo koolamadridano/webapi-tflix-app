@@ -3,9 +3,378 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Vue-cdn Create, Read, Update and Delete</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.6.11/dist/css/uikit.min.css" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
+    <link rel="stylesheet" href="app.css">
 </head>
 <body>
-    
+    <div id="app">
+        <div class="container-fluid">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <section  v-if="view === 'table' ">
+   
+                        <div class="d-flex justify-content-start align-items-center mt-5">
+                            <form @submit.prevent="handleFilter">
+                                <div class="d-flex">
+                                    <div class="uk-inline mr-2">
+                                        <a class="uk-form-icon" href="#" uk-icon="icon: search"></a>
+                                        <input v-model="keyword" class="uk-input uk-form-width-large" type="text" placeholder="Search keyword here..." autofocus>
+                                    </div>
+                                    <div class="d-flex">
+                                        <button type="button" class="uk-button uk-button-primary mr-1" @click="handleUpload">Add new movie</button>
+                                        <button type="submit" class="uk-button uk-button-default mr-1">
+                                            Search <span uk-icon="search"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <table class="uk-table">
+                            <thead>
+                                <tr>
+                                    <th v-for="(column,index) in columns">{{column}}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="loading">
+                                    <td colspan="3">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="lds-ellipsis">
+                                                <div></div>
+                                                <div></div>
+                                                <div></div>
+                                                <div></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-for="(movie,index) in movies" v-if="!loading">
+                                    <td><img v-bind:src="movie.poster" width="250"></td>
+                                    <td>
+                                        <h4 class="p-0 m-0 text-dark font-weight-normal">{{movie.title}}</h4>
+                                        <h6 class="p-0 m-0 mt-2 text-dark font-weight-normal size-13">{{movie.genre}}</h6>
+                                        <h6 class="p-0 m-0 text-dark font-weight-normal size-13">Writer: {{movie.writer}}</h6>
+                                        <h6 class="p-0 m-0 text-dark font-weight-normal size-13">Director: {{movie.director}}</h6>
+                                        <section class="p-0 m-0 mt-2 text-dark font-weight-normal size-13 d-flex">
+                                            <div class="d-flex align-items-center mr-2">
+                                                <span uk-icon="icon:star" class="mr-1"></span>
+                                                <span>{{movie.ratings}}/10</span>
+                                            </div>
+                                            <div class="d-flex align-items-center mr-2">
+                                                <span uk-icon="icon:calendar" class="mr-1"></span>
+                                                <span>{{movie.release}}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <span uk-icon="icon:play" class="mr-1"></span>
+                                                <span>{{movie.runtime}} min</span>
+                                            </div>
+                                        </section>
+                                        <p class="mt-3 text-dark font-weight-normal">
+                                            {{movie.summary}}
+                                        </p>
+                                        <div class="d-flex">
+                                            <h6 class="mr-2 pointer" @click="handleFields('edit-details', movie.id)"><span uk-icon="icon:file-edit;" class="mr-2 "></span>Edit</h6>
+                                            <h6 class="text-danger pointer" @click="handleDelete(movie.id)"><span uk-icon="icon:trash;" class=""></span>Remove</h6>
+                                        </div>
+                                    </td>
+                
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section v-if="view === 'upload-movies'" class="mt-5">
+                        <form @submit.prevent="handlePost" enctype="multipart/form-data">
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="uk-grid-small  mt-3" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary">Title</p>
+                                            <input v-model="movieDetails.title" class="uk-input" type="text" placeholder="Enter movie title here..." required>
+                                            <input v-model="movieDetails.poster" type="file" id="src" class="form-control-file mt-3" accept="image/*" @change="handlePosterChange" required>
+                                        </div>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary">Genre</p>
+                                            <input  v-model="movieDetails.genre" class="uk-input" type="text" placeholder="Separate with (,)" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="uk-grid-small" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Language</p>
+                                            <input v-model="movieDetails.language" class="uk-input" type="text" placeholder="Separate with (,) eg. Action, Fantasy, Comedy etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Type</p>
+                                            <input v-model="movieDetails.type" class="uk-input" type="text" placeholder="Series/Movie/Cartoon etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Rated</p>
+                                            <input v-model="movieDetails.rated" class="uk-input" type="text" placeholder="G/PG-13/18+ etc." required>
+                                        </div>
+                                    </div>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Writer</p>
+                                    <input v-model="movieDetails.writer" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Director</p>
+                                    <input  v-model="movieDetails.director" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Actors</p>
+                                    <input v-model="movieDetails.actor" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+
+                                    <div class="uk-grid-small" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Release</p>
+                                            <input v-model="movieDetails.release" class="uk-input" type="date" placeholder="Separate with (,) eg. Action, Fantasy, Comedy etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Ratings</p>
+                                            <input v-model="movieDetails.ratings" class="uk-input" type="text" placeholder="Maximum is 10" maxlength="2" required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Runtime</p>
+                                            <input v-model="movieDetails.runtime" class="uk-input" type="text" placeholder="Min" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="p-0 m-0 text-secondary mt-3">Summary</p>
+                                    <textarea v-model="movieDetails.summary" class="uk-textarea" rows="5" placeholder="Write summary here.." required></textarea>
+                                    <div class="d-flex justify-content-end  mt-3">
+                                        <button type="button" class="uk-button uk-button-default d-flex align-items-center mr-2" @click="handleToggleTable">
+                                            <span uk-icon="arrow-left"></span>
+                                            <span>Return</span>
+                                        </button>
+                                        <button type="submit" class="uk-button uk-button-primary" :disabled="loading">
+                                            Post<i class="fas fa-spinner fa-spin ml-1" v-if="loading"></i>
+                                        </button>
+                                    </div>
+                                    <img id="target" alt="img" class="mt-3 img-fluid" />
+                                </div>
+                                
+                            </div>
+                        </form>
+                    </section>
+                    <section v-if="view === 'edit-details'"  class="mt-5">
+                        <form @submit.prevent="handleEdit" enctype="multipart/form-data">
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="uk-grid-small  mt-3" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary">Title</p>
+                                            <input v-model="movieDetails.title" class="uk-input" type="text" placeholder="Enter movie title here..." required>
+                                            <input v-model="movieDetails.poster" type="file" id="src" class="form-control-file mt-3" accept="image/*" @change="handlePosterChange" required>
+                                        </div>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary">Genre</p>
+                                            <input  v-model="movieDetails.genre" class="uk-input" type="text" placeholder="Separate with (,)" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="uk-grid-small" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Language</p>
+                                            <input v-model="movieDetails.language" class="uk-input" type="text" placeholder="Separate with (,) eg. Action, Fantasy, Comedy etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Type</p>
+                                            <input v-model="movieDetails.type" class="uk-input" type="text" placeholder="Series/Movie/Cartoon etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Rated</p>
+                                            <input v-model="movieDetails.rated" class="uk-input" type="text" placeholder="G/PG-13/18+ etc." required>
+                                        </div>
+                                    </div>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Writer</p>
+                                    <input v-model="movieDetails.writer" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Director</p>
+                                    <input  v-model="movieDetails.director" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+                                    <p class="p-0 m-0 text-secondary mt-3">Actors</p>
+                                    <input v-model="movieDetails.actor" class="uk-input" type="text" placeholder="Separate with (,) eg. Eren, Mikasa, Armin, Jean" required>
+
+
+                                    <div class="uk-grid-small" uk-grid>
+                                        <div class="uk-width-1-2@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Release</p>
+                                            <input v-model="movieDetails.release" class="uk-input" type="date" placeholder="Separate with (,) eg. Action, Fantasy, Comedy etc." required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Ratings</p>
+                                            <input v-model="movieDetails.ratings" class="uk-input" type="text" placeholder="Maximum is 10" maxlength="2" required>
+                                        </div>
+                                        <div class="uk-width-1-4@s">
+                                            <p class="p-0 m-0 text-secondary mt-3">Runtime</p>
+                                            <input v-model="movieDetails.runtime" class="uk-input" type="text" placeholder="Min" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="p-0 m-0 text-secondary mt-3">Summary</p>
+                                    <textarea v-model="movieDetails.summary" class="uk-textarea" rows="5" placeholder="Write summary here.." required></textarea>
+                                    <div class="d-flex justify-content-end  mt-3">
+                                        <button type="button" class="uk-button uk-button-default d-flex align-items-center mr-2" @click="handleToggleTable">
+                                            <span uk-icon="arrow-left"></span>
+                                            <span>Return</span>
+                                        </button>
+                                        <button type="submit" class="uk-button uk-button-primary" :disabled="loading">
+                                            Post<i class="fas fa-spinner fa-spin ml-1" v-if="loading"></i>
+                                        </button>
+                                    </div>
+                                    <img id="target" v-bind:src="thumbnailOnEdit" alt="img" class="mt-3 img-fluid" />
+                                </div>
+                                
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.11/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.11/dist/js/uikit-icons.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script>
+          var app = new Vue({
+            el: '#app',
+            data: {
+                baseURL: 'https://www.tflix-api.somee.com/api/movie',
+                columns: ["Poster", "Details"],
+                movies: [],
+                view: null,
+                loading: null,
+                cloudinaryUrl:"https://api.cloudinary.com/v1_1/yourmysomi/image/upload",
+                movieDetails: {},
+                thumbnailOnEdit: null,
+                keyword: null
+            },
+            methods: {
+                handlePost: function() {
+                    this.loading = true;
+                    const form = document.querySelector("form");
+                    const files = document.querySelector("[type=file]").files;
+                    const formData = new FormData();
+                    for (let i = 0; i < files.length; i++) { 
+                        let file = files[i];
+                            formData.append("file", file);
+                            formData.append("upload_preset", "snoecp7q");
+                            axios.post(this.cloudinaryUrl, formData)
+                                .then(result => {
+                                    this.movieDetails.poster = result.data.secure_url;
+                                        axios.post(this.baseURL, this.movieDetails)
+                                            .then(result => {
+                                                this.loading = false;
+                                                location.href= "index.html"
+                                            })
+                                            .catch((err) => { console.log(console.log); });
+                                })
+                                .catch(error => console.error(error))
+                    }
+                },
+                fetchMovies: function() {
+                    this.loading = true;
+                    axios.get(this.baseURL)
+                    .then((result) => {
+                        this.movies = result.data.reverse();
+                        this.loading = false;
+                    })
+                    .catch((err) => console.log(console.log));
+                },
+                handleFields: function(type, payload) {
+                    switch(true) {
+                        case type === 'edit-details' :
+                            this.view = 'edit-details';
+                            this.movies = this.movies.find((data, index) => {
+                                return data.id == payload;
+                            })
+                            this.movieDetails = {
+                                id: payload,
+                                title: this.movies.title,
+                                actor: this.movies.actor,
+                                director: this.movies.director,
+                                genre: this.movies.genre,
+                                language: this.movies.language,
+                                rated: this.movies.rated,
+                                release: this.movies.release,
+                                runtime: this.movies.runtime,
+                                summary: this.movies.summary,
+                                type: this.movies.type,
+                                writer: this.movies.writer,
+                                ratings: this.movies.ratings,
+                            }
+                            this.thumbnailOnEdit = this.movies.poster;
+                            console.log( this.movies.poster);
+
+                            break;
+                        default:
+                            return
+                    }
+                },
+                handleEdit: function() {
+                    this.loading = true;
+                    const form = document.querySelector("form");
+                    const files = document.querySelector("[type=file]").files;
+                    const formData = new FormData();
+                    for (let i = 0; i < files.length; i++) { 
+                        let file = files[i];
+                            formData.append("file", file);
+                            formData.append("upload_preset", "snoecp7q");
+                            axios.post(this.cloudinaryUrl, formData)
+                                .then(result => {
+                                    this.movieDetails.poster = result.data.secure_url;
+                                        axios.put(this.baseURL, this.movieDetails)
+                                            .then(result => {
+                                                this.loading = false;
+                                                location.href= "index.html"
+                                            })
+                                            .catch((err) => { console.log(console.log); });
+                                })
+                                .catch(error => console.error(error))
+                    }
+                },
+                handleUpload: function() {
+                    this.view = 'upload-movies'
+                },
+                handleToggleTable: function() {
+                    this.movieDetails = { ...null  }
+                    this.view = 'table';
+                    this.fetchMovies();
+                },
+                handlePosterChange: function() {
+                    var src = document.getElementById("src");
+                    var target = document.getElementById("target");
+                    var fr = new FileReader();
+                        fr.onload = function(e) { 
+                            target.src = this.result;
+                        };
+                        fr.readAsDataURL(src.files[0]);
+                },
+                handleDelete: function(id) {
+                    axios.delete(this.baseURL + `/${id}`)
+                        .then(result =>  this.fetchMovies())
+                        .catch(error => console.error(error))
+                },
+                handleFilter: function() {
+                    axios.get(this.baseURL + `?keyword=${this.keyword}`)
+                        .then((result) =>  this.movies = result.data.reverse())
+                        .catch((err) =>  console.log(err));
+                        if(!this.keyword) this.fetchMovies();
+                }
+            },
+            mounted: function() {
+                this.fetchMovies();
+                if(this.movies) {
+                    this.view = "table";
+                }
+            }
+        })
+    </script>
 </body>
 </html>
